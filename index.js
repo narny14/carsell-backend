@@ -75,6 +75,9 @@ app.get("/modeles", async (req, res) => {
 app.get("/test", (req, res) => {
     res.send("✅ Route test OK");
   });
+  app.get("/", (req, res) => {
+    res.send("Bienvenue sur l'API CarSell 🚗");
+  });
   
 app.listen(port, () => {
   console.log(`🚀 API en ligne sur http://localhost:${port}`);
