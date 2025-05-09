@@ -72,6 +72,19 @@ app.get("/modeles", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// Route /annonces
+app.get("/annonces", async (req, res) => {
+  try {
+    const conn = await getConnection();
+    const [rows] = await conn.query("SELECT * FROM annonces");
+    console.log("✅ Résultat /annonces :", rows);
+    await conn.end();
+    res.json(rows);
+  } catch (err) {
+    console.error("❌ Erreur SQL /annonces :", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
 app.get("/test", (req, res) => {
     res.send("✅ Route test OK");
   });
