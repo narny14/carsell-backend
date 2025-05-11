@@ -98,9 +98,9 @@ app.get("/modeles", async (req, res) => {
   try {
     const conn = await getConnection();
 
-    // Cherche l'ID de la marque
+    // Recherche insensible à la casse
     const [marqueRows] = await conn.query(
-      "SELECT id FROM marques WHERE nom_marque = ? LIMIT 1",
+      "SELECT id FROM marques WHERE LOWER(nom_marque) = LOWER(?) LIMIT 1",
       [marque]
     );
 
@@ -110,14 +110,14 @@ app.get("/modeles", async (req, res) => {
     }
 
     const marqueId = marqueRows[0].id;
-    console.log("✅ Résultat  :", marqueId);
-    // Récupère les modèles liés à cette marque
+
     const [modelesRows] = await conn.query(
-      "SELECT nom FROM modeles WHERE marque_id = ?",
+      "SELECT nom_modele FROM modeles WHERE marque_id = ?",
       [marqueId]
     );
 
     await conn.end();
+
     const modeles = modelesRows.map((row) => row.nom);
     res.json(modeles);
   } catch (err) {
