@@ -60,6 +60,20 @@ app.get("/cars", async (req, res) => {
   }
 });
 
+// Route /voiture
+app.get("/voiture", async (req, res) => {
+  try {
+    const conn = await getConnection();
+    const [rows] = await conn.query("SELECT * FROM marques");
+    console.log("✅ Résultat /marques :", rows);
+    await conn.end();
+    res.json(rows);
+  } catch (err) {
+    console.error("❌ Erreur SQL /marques :", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Route /modeles
 app.get("/modeles", async (req, res) => {
   try {
