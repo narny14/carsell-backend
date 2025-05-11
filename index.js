@@ -110,7 +110,7 @@ app.get("/modeles", async (req, res) => {
     }
 
     const marqueId = marqueRows[0].id;
-
+    console.log("✅ Résultat  :", marqueId);
     // Récupère les modèles liés à cette marque
     const [modelesRows] = await conn.query(
       "SELECT nom FROM modeles WHERE marque_id = ?",
