@@ -98,32 +98,23 @@ app.get("/modeles", async (req, res) => {
   try {
     const conn = await getConnection();
 
-    const [marqueRows] = await conn.query(
-      "SELECT * FROM marques WHERE nom_marque = ? LIMIT 1",
-      [marque]
-    );
-
-    if (marqueRows.length === 0) {
-      await conn.end();
-      return res.json([]); // Marque inconnue
-    }
-
-    const marqueId = marqueRows[0].id;
-
     const [modelesRows] = await conn.query(
-      "SELECT * FROM modeles WHERE marque_id = ?",
-      [marqueId]
+      `SELECT * FROM modeles 
+       WHERE marque_id = (
+         SELECT id FROM marques WHERE nom_marque = ? LIMIT 1
+       )`,
+      [marque]
     );
 
     await conn.end();
 
-    const modeles = modelesRows.map((row) => row.nom_modele);
-    res.json(modeles);
+    res.json(modelesRows);
   } catch (err) {
     console.error("❌ Erreur SQL /modeles :", err.message);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 
 
