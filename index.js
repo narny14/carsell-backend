@@ -100,7 +100,7 @@ app.get("/modeles", async (req, res) => {
 
     // Cherche l'ID de la marque
     const [marqueRows] = await conn.query(
-      "SELECT id FROM marques WHERE nom = ? LIMIT 1",
+      "SELECT id FROM marques WHERE nom_marque = ? LIMIT 1",
       [marque]
     );
 
