@@ -5,6 +5,7 @@ const cors = require("cors");
 
 const app = express();
 const port = process.env.PORT || 3000;
+const path = require('path');
 
 app.use(cors());
 app.use(express.json());
@@ -92,6 +93,13 @@ app.get("/test", (req, res) => {
   app.get("/", (req, res) => {
     res.send("Bienvenue sur l'API CarSell 🚗");
   });
+// Ajoute cette ligne pour exposer le dossier uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Exemple : une route simple pour tester
+app.get('/', (req, res) => {
+  res.send('Bienvenue sur carsell-backend');
+});
   
 app.listen(port, () => {
   console.log(`🚀 API en ligne sur http://localhost:${port}`);
