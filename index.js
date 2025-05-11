@@ -75,7 +75,7 @@ app.get("/voiture", async (req, res) => {
 });
 
 // Route /modeles
-app.get("/modeles", async (req, res) => {
+/*app.get("/modeles", async (req, res) => {
   try {
     const conn = await getConnection();
     const [rows] = await conn.query("SELECT * FROM modeles");
@@ -86,7 +86,7 @@ app.get("/modeles", async (req, res) => {
     console.error("❌ Erreur SQL /modeles :", err.message);
     res.status(500).json({ error: err.message });
   }
-});
+});*/
 
 app.get("/modeles", async (req, res) => {
   const marque = req.query.marque;
