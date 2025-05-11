@@ -98,9 +98,8 @@ app.get("/modeles", async (req, res) => {
   try {
     const conn = await getConnection();
 
-    // Recherche insensible à la casse
     const [marqueRows] = await conn.query(
-      "SELECT id FROM marques WHERE LOWER(nom_marque) = LOWER(?) LIMIT 1",
+      "SELECT id FROM marques WHERE LOWER(nom) = LOWER(?) LIMIT 1",
       [marque]
     );
 
@@ -118,13 +117,14 @@ app.get("/modeles", async (req, res) => {
 
     await conn.end();
 
-    const modeles = modelesRows.map((row) => row.nom);
+    const modeles = modelesRows.map((row) => row.nom_modele);
     res.json(modeles);
   } catch (err) {
     console.error("❌ Erreur SQL /modeles :", err.message);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 
 // Route /annonces
