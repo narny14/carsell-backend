@@ -99,7 +99,7 @@ app.get("/modeles", async (req, res) => {
     const conn = await getConnection();
 
     const [marqueRows] = await conn.query(
-      "SELECT id FROM marques WHERE LOWER(nom) = LOWER(?) LIMIT 1",
+      "SELECT * FROM marques WHERE nom_marque = ? LIMIT 1",
       [marque]
     );
 
@@ -111,7 +111,7 @@ app.get("/modeles", async (req, res) => {
     const marqueId = marqueRows[0].id;
 
     const [modelesRows] = await conn.query(
-      "SELECT nom_modele FROM modeles WHERE marque_id = ?",
+      "SELECT * FROM modeles WHERE marque_id = ?",
       [marqueId]
     );
 
