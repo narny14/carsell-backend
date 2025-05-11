@@ -73,6 +73,46 @@ app.get("/modeles", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+app.get("/modeles", async (req, res) => {
+  const marque = req.query.marque;
+
+  if (!marque) {
+    return res.status(400).json({ error: "Paramètre 'marque' requis" });
+  }
+
+  try {
+    const conn = await getConnection();
+
+    // Cherche l'ID de la marque
+    const [marqueRows] = await conn.query(
+      "SELECT id FROM marques WHERE nom = ? LIMIT 1",
+      [marque]
+    );
+
+    if (marqueRows.length === 0) {
+      await conn.end();
+      return res.json([]); // Marque inconnue
+    }
+
+    const marqueId = marqueRows[0].id;
+
+    // Récupère les modèles liés à cette marque
+    const [modelesRows] = await conn.query(
+      "SELECT nom FROM modeles WHERE marque_id = ?",
+      [marqueId]
+    );
+
+    await conn.end();
+    const modeles = modelesRows.map((row) => row.nom);
+    res.json(modeles);
+  } catch (err) {
+    console.error("❌ Erreur SQL /modeles :", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 // Route /annonces
 app.get("/annonces", async (req, res) => {
   try {
