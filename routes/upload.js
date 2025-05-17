@@ -47,9 +47,13 @@ router.post('/upload-annonce', upload.array('images', 10), (req, res) => {
   const imageNames = req.files.map(file => file.filename);
 
   // Insérer l'annonce dans la table `annonces`
-  const insertAnnonceQuery = `
+  /*const insertAnnonceQuery = `
     INSERT INTO annonces (marque, modele, moteur, transmission, freins, suspension, essaiRoutier, prix, climatisation, siegesChauffants, reglageSieges, toitOuvrant, volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seats)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `; */
+  const insertAnnonceQuery = `
+    INSERT INTO annonces (marque)
+    VALUES (?)
   `;
 
   db.query(insertAnnonceQuery, [marque, modele, moteur, transmission, freins, suspension, essaiRoutier, prix, climatisation, siegesChauffants, reglageSieges, toitOuvrant, volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seats], (err, result) => {
