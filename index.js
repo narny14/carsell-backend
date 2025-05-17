@@ -112,6 +112,20 @@ app.get("/annonces/images", async (req, res) => {
   }
 });
 
+// ✅ Route GET /annonces (liste simple sans images)
+app.get("/annoncesdujour", async (req, res) => {
+  try {
+    const conn = await getConnection();
+    const [annonces] = await conn.query("SELECT * FROM annonces");
+    await conn.end();
+    res.json(annonces);
+  } catch (err) {
+    console.error("❌ Erreur GET /annoncesdujour :", err.message);
+    res.status(500).json({ error: "Erreur lors de la récupération" });
+  }
+});
+
+
 // 🔥 Route test
 app.get("/", (req, res) => {
   res.send("🚀 API CarSell active sur Railway");
