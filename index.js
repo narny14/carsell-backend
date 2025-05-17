@@ -125,6 +125,18 @@ app.get("/annoncesdujour", async (req, res) => {
   }
 });
 
+// 🔥 GET /voiture (exemple simple avec table marques)
+app.get("/voiture", async (req, res) => {
+  try {
+    const conn = await getConnection();
+    const [rows] = await conn.query("SELECT * FROM marques");
+    await conn.end();
+    res.json(rows);
+  } catch (err) {
+    console.error("❌ Erreur GET /voiture :", err.message);
+    res.status(500).json({ error: "Erreur lors de la récupération des marques" });
+  }
+});
 
 // 🔥 Route test
 app.get("/", (req, res) => {
