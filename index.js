@@ -104,7 +104,6 @@ app.post("/annonces", upload.array("photos", 10), async (req, res) => {
     return res.status(400).json({ message: 'Le champ marque est requis' });
   }
 
-  return res.status(200).json({ message: 'Test réussi avec marque = ' + marque });
 
     const annonceId = result.insertId;
 
