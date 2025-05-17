@@ -61,16 +61,21 @@ const upload = multer({
 // 🔥 Route POST /annonces avec images
 app.post("/annonces", upload.array("photos", 10), async (req, res) => {
   try {
+    /*
     const {
       marque, modele, moteur, transmission, freins, suspension,
       essaiRoutier, prix, climatisation, siegesChauffants, reglageSieges,
       toitOuvrant, volantChauffant, demarrageSansCle, coffreElectrique,
       storesPareSoleil, seats
     } = req.body;
+ */
+    const {
+      marque
+    } = req.body;
 
     const conn = await getConnection();
 
-    const [result] = await conn.execute(
+    /*const [result] = await conn.execute(
       `INSERT INTO annonces (
         marque, modele, moteur, transmission, freins, suspension,
         essaiRoutier, prix, climatisation, siegesChauffants, reglageSieges,
@@ -83,7 +88,23 @@ app.post("/annonces", upload.array("photos", 10), async (req, res) => {
         toitOuvrant, volantChauffant, demarrageSansCle, coffreElectrique,
         storesPareSoleil, seats
       ]
+    ); */
+
+    const [result] = await conn.execute(
+      `INSERT INTO annonces (
+        marque
+      ) VALUES (?)`,
+      [
+        marque
+      ]
     );
+  console.log("✅ POST /annonces reçue");
+  console.log("📦 Body reçu :", req.body);
+  if (!marque) {
+    return res.status(400).json({ message: 'Le champ marque est requis' });
+  }
+
+  return res.status(200).json({ message: 'Test réussi avec marque = ' + marque });
 
     const annonceId = result.insertId;
 
