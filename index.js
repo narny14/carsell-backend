@@ -13,10 +13,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 🔓 Servir les fichiers statiques (images uploadées)
+// 🔓 Servir les fichiers statiques
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ✅ Connexion à Railway
+// ✅ Connexion MySQL (Railway)
 async function getConnection() {
   return await mysql.createConnection({
     host: process.env.DB_HOST || 'yamabiko.proxy.rlwy.net',
@@ -27,7 +27,7 @@ async function getConnection() {
   });
 }
 
-// 🔧 Configuration Multer : destination, nommage, filtre MIME, limite de fichiers
+// 🔧 Configuration Multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, "uploads");
@@ -41,7 +41,6 @@ const storage = multer.diskStorage({
   },
 });
 
-// 🔐 Filtrage des types MIME acceptés
 const fileFilter = (req, file, cb) => {
   const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
   if (allowedTypes.includes(file.mimetype)) {
@@ -51,59 +50,27 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// 🎯 Middleware Multer configuré
 const upload = multer({
   storage,
   fileFilter,
-  limits: { files: 10 }, // Limite à 10 fichiers
+  limits: { files: 10 },
 });
 
-// 🔥 Route POST /annonces avec images
+// ✅ POST /annonces
 app.post("/annonces", upload.array("photos", 10), async (req, res) => {
   try {
-    /*
-    const {
-      marque, modele, moteur, transmission, freins, suspension,
-      essaiRoutier, prix, climatisation, siegesChauffants, reglageSieges,
-      toitOuvrant, volantChauffant, demarrageSansCle, coffreElectrique,
-      storesPareSoleil, seats
-    } = req.body;
- */
-    const {
-      marque
-    } = req.body;
+    const { marque } = req.body;
+
+    if (!marque) {
+      return res.status(400).json({ message: "Le champ 'marque' est requis." });
+    }
 
     const conn = await getConnection();
 
-    /*const [result] = await conn.execute(
-      `INSERT INTO annonces (
-        marque, modele, moteur, transmission, freins, suspension,
-        essaiRoutier, prix, climatisation, siegesChauffants, reglageSieges,
-        toitOuvrant, volantChauffant, demarrageSansCle, coffreElectrique,
-        storesPareSoleil, seats
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        marque, modele, moteur, transmission, freins, suspension,
-        essaiRoutier, prix, climatisation, siegesChauffants, reglageSieges,
-        toitOuvrant, volantChauffant, demarrageSansCle, coffreElectrique,
-        storesPareSoleil, seats
-      ]
-    ); */
-
     const [result] = await conn.execute(
-      `INSERT INTO annonces (
-        marque
-      ) VALUES (?)`,
-      [
-        marque
-      ]
+      `INSERT INTO annonces (marque) VALUES (?)`,
+      [marque]
     );
-  console.log("✅ POST /annonces reçue");
-  console.log("📦 Body reçu :", req.body);
-  if (!marque) {
-    return res.status(400).json({ message: 'Le champ marque est requis' });
-  }
-
 
     const annonceId = result.insertId;
 
@@ -117,14 +84,16 @@ app.post("/annonces", upload.array("photos", 10), async (req, res) => {
     }
 
     await conn.end();
-    res.status(201).json({ message: "✅ Annonce enregistrée avec succès", id: annonceId });
+    console.log("✅ Annonce créée avec ID :", annonceId);
+    res.status(201).json({ message: "Annonce enregistrée avec succès", id: annonceId });
+
   } catch (err) {
-    console.error("❌ Erreur POST /annonces :", err.message);
-    res.status(500).json({ error: "Erreur lors de l'enregistrement" });
+    console.error("❌ Erreur POST /annonces :", err.stack);
+    res.status(500).json({ error: "Erreur lors de l'enregistrement", details: err.message });
   }
 });
 
-// 🔥 Route GET /annonces/images
+// ✅ GET /annonces/images
 app.get("/annonces/images", async (req, res) => {
   try {
     const conn = await getConnection();
@@ -143,12 +112,12 @@ app.get("/annonces/images", async (req, res) => {
     await conn.end();
     res.json(annonces);
   } catch (err) {
-    console.error("❌ Erreur GET /annonces/images :", err.message);
+    console.error("❌ Erreur GET /annonces/images :", err.stack);
     res.status(500).json({ error: "Erreur lors de la récupération" });
   }
 });
 
-// ✅ Route GET /annonces (liste simple sans images)
+// ✅ GET /annoncesdujour
 app.get("/annoncesdujour", async (req, res) => {
   try {
     const conn = await getConnection();
@@ -156,12 +125,12 @@ app.get("/annoncesdujour", async (req, res) => {
     await conn.end();
     res.json(annonces);
   } catch (err) {
-    console.error("❌ Erreur GET /annoncesdujour :", err.message);
+    console.error("❌ Erreur GET /annoncesdujour :", err.stack);
     res.status(500).json({ error: "Erreur lors de la récupération" });
   }
 });
 
-// 🔥 GET /voiture (liste des marques)
+// ✅ GET /voiture
 app.get("/voiture", async (req, res) => {
   try {
     const conn = await getConnection();
@@ -169,12 +138,12 @@ app.get("/voiture", async (req, res) => {
     await conn.end();
     res.json(rows);
   } catch (err) {
-    console.error("❌ Erreur GET /voiture :", err.message);
+    console.error("❌ Erreur GET /voiture :", err.stack);
     res.status(500).json({ error: "Erreur lors de la récupération des marques" });
   }
 });
 
-// 🔥 GET /modeles?marque=Toyota
+// ✅ GET /modeles
 app.get("/modeles", async (req, res) => {
   const { marque } = req.query;
 
@@ -193,16 +162,17 @@ app.get("/modeles", async (req, res) => {
     await conn.end();
     res.json(rows);
   } catch (err) {
-    console.error("❌ Erreur GET /modeles :", err.message);
+    console.error("❌ Erreur GET /modeles :", err.stack);
     res.status(500).json({ error: "Erreur lors de la récupération des modèles" });
   }
 });
 
-// 🔥 Route test
+// ✅ Route de test
 app.get("/", (req, res) => {
   res.send("🚀 API CarSell active sur Railway");
 });
 
+// ✅ Démarrage
 app.listen(port, () => {
   console.log(`🚀 Serveur démarré sur http://localhost:${port}`);
 });
