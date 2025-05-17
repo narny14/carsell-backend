@@ -27,7 +27,7 @@ async function getConnection() {
   });
 }
 
-// 🔧 Configuration Multer pour upload
+// 🔧 Configuration Multer : destination, nommage, filtre MIME, limite de fichiers
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, "uploads");
@@ -40,7 +40,23 @@ const storage = multer.diskStorage({
     cb(null, file.fieldname + "-" + uniqueSuffix + ext);
   },
 });
-const upload = multer({ storage });
+
+// 🔐 Filtrage des types MIME acceptés
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Seuls les fichiers .jpeg, .jpg, .png sont autorisés."), false);
+  }
+};
+
+// 🎯 Middleware Multer configuré
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { files: 10 }, // Limite à 10 fichiers
+});
 
 // 🔥 Route POST /annonces avec images
 app.post("/annonces", upload.array("photos", 10), async (req, res) => {
@@ -125,7 +141,7 @@ app.get("/annoncesdujour", async (req, res) => {
   }
 });
 
-// 🔥 GET /voiture (exemple simple avec table marques)
+// 🔥 GET /voiture (liste des marques)
 app.get("/voiture", async (req, res) => {
   try {
     const conn = await getConnection();
@@ -138,6 +154,7 @@ app.get("/voiture", async (req, res) => {
   }
 });
 
+// 🔥 GET /modeles?marque=Toyota
 app.get("/modeles", async (req, res) => {
   const { marque } = req.query;
 
@@ -147,15 +164,12 @@ app.get("/modeles", async (req, res) => {
 
   try {
     const conn = await getConnection();
-
-    // Requête avec jointure via `marque_id`
     const [rows] = await conn.query(
       `SELECT * FROM modeles WHERE marque_id = (
          SELECT id FROM marques WHERE nom_marque = ?
        )`,
       [marque]
     );
-
     await conn.end();
     res.json(rows);
   } catch (err) {
@@ -163,7 +177,6 @@ app.get("/modeles", async (req, res) => {
     res.status(500).json({ error: "Erreur lors de la récupération des modèles" });
   }
 });
-
 
 // 🔥 Route test
 app.get("/", (req, res) => {
