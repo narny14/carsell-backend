@@ -138,6 +138,33 @@ app.get("/voiture", async (req, res) => {
   }
 });
 
+app.get("/modeles", async (req, res) => {
+  const { marque } = req.query;
+
+  if (!marque) {
+    return res.status(400).json({ error: "Le paramètre 'marque' est requis." });
+  }
+
+  try {
+    const conn = await getConnection();
+
+    // Requête avec jointure via `marque_id`
+    const [rows] = await conn.query(
+      `SELECT * FROM modeles WHERE marque_id = (
+         SELECT id FROM marques WHERE nom_marque = ?
+       )`,
+      [marque]
+    );
+
+    await conn.end();
+    res.json(rows);
+  } catch (err) {
+    console.error("❌ Erreur GET /modeles :", err.message);
+    res.status(500).json({ error: "Erreur lors de la récupération des modèles" });
+  }
+});
+
+
 // 🔥 Route test
 app.get("/", (req, res) => {
   res.send("🚀 API CarSell active sur Railway");
