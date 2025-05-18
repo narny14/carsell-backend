@@ -13,10 +13,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 🔓 Servir les fichiers statiques
+// 📁 Servir les fichiers statiques (images)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ✅ Connexion MySQL (Railway)
+// ✅ Connexion à MySQL Railway
 async function getConnection() {
   return await mysql.createConnection({
     host: process.env.DB_HOST || 'yamabiko.proxy.rlwy.net',
@@ -27,7 +27,7 @@ async function getConnection() {
   });
 }
 
-// 🔧 Configuration Multer
+// 🔧 Configuration Multer pour l’upload d’images
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, "uploads");
@@ -43,11 +43,9 @@ const storage = multer.diskStorage({
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error("Seuls les fichiers .jpeg, .jpg, .png sont autorisés."), false);
-  }
+  allowedTypes.includes(file.mimetype)
+    ? cb(null, true)
+    : cb(new Error("Seuls les fichiers .jpeg, .jpg, .png sont autorisés."), false);
 };
 
 const upload = multer({
@@ -56,7 +54,7 @@ const upload = multer({
   limits: { files: 10 },
 });
 
-// ✅ POST /annonces
+// ✅ POST /annonces (avec photos)
 app.post("/annonces", upload.array("photos", 10), async (req, res) => {
   try {
     const { marque } = req.body;
@@ -93,8 +91,9 @@ app.post("/annonces", upload.array("photos", 10), async (req, res) => {
   }
 });
 
-app.post('/annoncestext', async (req, res) => {
-  console.log('Requête reçue :', req.body);
+// ✅ POST /annoncestext (insertion sans photo)
+app.post("/annoncestext", async (req, res) => {
+  console.log("📩 Données reçues :", req.body);
 
   const {
     marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
@@ -105,13 +104,9 @@ app.post('/annoncestext', async (req, res) => {
   const prixInt = parseFloat(prix);
   const seatsInt = parseInt(seats);
 
-  console.log("Données reçues pour insertion :", {
-    marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
-    prixInt, climatisation, siegesChauffants, reglageSieges, toitOuvrant,
-    volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seatsInt
-  });
-
   try {
+    const conn = await getConnection();
+
     const sql = `
       INSERT INTO annonces (
         marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
@@ -120,22 +115,19 @@ app.post('/annoncestext', async (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    await db.query(sql, [
+    await conn.execute(sql, [
       marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
       prixInt, climatisation, siegesChauffants, reglageSieges, toitOuvrant,
       volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seatsInt
     ]);
 
-    res.status(200).json({ message: 'Annonce enregistrée' });
+    await conn.end();
+    res.status(200).json({ message: "✅ Annonce enregistrée avec succès." });
   } catch (err) {
-    console.error('Erreur SQL :', err.sqlMessage || err.message);
-    res.status(500).json({ message: 'Erreur serveur', erreur: err.sqlMessage || err.message });
+    console.error("❌ Erreur SQL :", err.sqlMessage || err.message);
+    res.status(500).json({ message: "Erreur serveur", erreur: err.sqlMessage || err.message });
   }
 });
-
-
-
-
 
 // ✅ GET /annonces/images
 app.get("/annonces/images", async (req, res) => {
@@ -174,7 +166,7 @@ app.get("/annoncesdujour", async (req, res) => {
   }
 });
 
-// ✅ GET /voiture
+// ✅ GET /voiture (liste des marques)
 app.get("/voiture", async (req, res) => {
   try {
     const conn = await getConnection();
@@ -187,7 +179,7 @@ app.get("/voiture", async (req, res) => {
   }
 });
 
-// ✅ GET /modeles
+// ✅ GET /modeles?marque=Toyota
 app.get("/modeles", async (req, res) => {
   const { marque } = req.query;
 
@@ -216,7 +208,7 @@ app.get("/", (req, res) => {
   res.send("🚀 API CarSell active sur Railway");
 });
 
-// ✅ Démarrage
+// ✅ Lancement du serveur
 app.listen(port, () => {
-  console.log(`🚀 Serveur démarré sur http://localhost:${port}`);
+  console.log(`🚀 Serveur lancé : http://localhost:${port}`);
 });
