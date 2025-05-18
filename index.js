@@ -105,6 +105,12 @@ app.post('/annoncestext', async (req, res) => {
   const prixInt = parseFloat(prix);
   const seatsInt = parseInt(seats);
 
+  console.log("Données reçues pour insertion :", {
+    marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
+    prixInt, climatisation, siegesChauffants, reglageSieges, toitOuvrant,
+    volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seatsInt
+  });
+
   try {
     const sql = `
       INSERT INTO annonces (
@@ -123,9 +129,10 @@ app.post('/annoncestext', async (req, res) => {
     res.status(200).json({ message: 'Annonce enregistrée' });
   } catch (err) {
     console.error('Erreur SQL :', err.sqlMessage || err.message);
-    res.status(500).json({ message: 'Erreur serveur' });
+    res.status(500).json({ message: 'Erreur serveur', erreur: err.sqlMessage || err.message });
   }
 });
+
 
 
 
