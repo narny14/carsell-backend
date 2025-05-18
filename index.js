@@ -92,7 +92,7 @@ app.post("/annonces", upload.array("photos", 10), async (req, res) => {
 });
 
 // ✅ POST /annoncestext (insertion sans photo)
-app.post("/annoncestext", async (req, res) => {
+app.post("/annoncestext", upload.array("photos", 10), async (req, res) => {
   console.log("📩 Données reçues :", req.body);
 
   const {
@@ -107,22 +107,34 @@ app.post("/annoncestext", async (req, res) => {
   try {
     const conn = await getConnection();
 
-    const sql = `
+    // ✅ Insertion dans annonces
+    const [result] = await conn.execute(`
       INSERT INTO annonces (
         marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
         prix, climatisation, siegesChauffants, reglageSieges, toitOuvrant,
         volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seats
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-
-    await conn.execute(sql, [
+    `, [
       marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
       prixInt, climatisation, siegesChauffants, reglageSieges, toitOuvrant,
       volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seatsInt
     ]);
 
+    const annonceId = result.insertId;
+
+    // ✅ Enregistrement des photos dans photos_annonces
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        await conn.execute(
+          "INSERT INTO photos_annonces (annonce_id, photo_url) VALUES (?, ?)",
+          [annonceId, file.filename]
+        );
+      }
+    }
+
     await conn.end();
-    res.status(200).json({ message: "✅ Annonce enregistrée avec succès." });
+    res.status(200).json({ message: "✅ Annonce + images enregistrées", id: annonceId });
+
   } catch (err) {
     console.error("❌ Erreur SQL :", err.sqlMessage || err.message);
     res.status(500).json({ message: "Erreur serveur", erreur: err.sqlMessage || err.message });
