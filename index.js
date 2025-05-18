@@ -93,40 +93,34 @@ app.post("/annonces", upload.array("photos", 10), async (req, res) => {
   }
 });
 
-app.post("/annoncestext", async (req, res) => {
+app.post('/annoncestext', async (req, res) => {
+  const {
+    marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
+    prix, climatisation, siegesChauffants, reglageSieges, toitOuvrant, volantChauffant,
+    demarrageSansCle, coffreElectrique, storesPareSoleil, seats
+  } = req.body;
+
+  if (!marque || !modele || !prix) {
+    return res.status(400).json({ message: 'Champs obligatoires manquants' });
+  }
+
   try {
-    const {
-      marque,
-      modele,
-      moteur,
-      transmission,
-      freins,
-      suspension,
-      essaiRoutier,
-      prix,
-      seats
-    } = req.body;
-
-    // Vérification minimale
-    if (!marque || !modele || !prix || !seats) {
-      return res.status(400).json({ message: "Champs requis manquants." });
-    }
-
-    const conn = await getConnection();
-
-    const [result] = await conn.execute(
+    const [result] = await pool.query(
       `INSERT INTO annonces (
-        marque, modele, moteur, transmission, freins, suspension, essaiRoutier, prix, seats
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [marque, modele, moteur, transmission, freins, suspension, essaiRoutier, prix, seats]
+        marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
+        prix, climatisation, siegesChauffants, reglageSieges, toitOuvrant,
+        volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seats
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
+        prix, climatisation, siegesChauffants, reglageSieges, toitOuvrant,
+        volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seats
+      ]
     );
-
-    await conn.end();
-
-    res.status(201).json({ message: "Annonce texte enregistrée avec succès", id: result.insertId });
+    res.json({ message: 'Annonce ajoutée', insertId: result.insertId });
   } catch (err) {
-    console.error("❌ Erreur POST /annoncestext :", err.stack);
-    res.status(500).json({ error: "Erreur serveur", details: err.message });
+    console.error(err);
+    res.status(500).json({ message: 'Erreur serveur' });
   }
 });
 
