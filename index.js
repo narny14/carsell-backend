@@ -93,6 +93,44 @@ app.post("/annonces", upload.array("photos", 10), async (req, res) => {
   }
 });
 
+app.post("/annoncestext", async (req, res) => {
+  try {
+    const {
+      marque,
+      modele,
+      moteur,
+      transmission,
+      freins,
+      suspension,
+      essaiRoutier,
+      prix,
+      seats
+    } = req.body;
+
+    // Vérification minimale
+    if (!marque || !modele || !prix || !seats) {
+      return res.status(400).json({ message: "Champs requis manquants." });
+    }
+
+    const conn = await getConnection();
+
+    const [result] = await conn.execute(
+      `INSERT INTO annonces (
+        marque, modele, moteur, transmission, freins, suspension, essaiRoutier, prix, seats
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [marque, modele, moteur, transmission, freins, suspension, essaiRoutier, prix, seats]
+    );
+
+    await conn.end();
+
+    res.status(201).json({ message: "Annonce texte enregistrée avec succès", id: result.insertId });
+  } catch (err) {
+    console.error("❌ Erreur POST /annoncestext :", err.stack);
+    res.status(500).json({ error: "Erreur serveur", details: err.message });
+  }
+});
+
+
 // ✅ GET /annonces/images
 app.get("/annonces/images", async (req, res) => {
   try {
