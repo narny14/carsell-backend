@@ -94,35 +94,40 @@ app.post("/annonces", upload.array("photos", 10), async (req, res) => {
 });
 
 app.post('/annoncestext', async (req, res) => {
+  console.log('Requête reçue :', req.body);
+
   const {
     marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
-    prix, climatisation, siegesChauffants, reglageSieges, toitOuvrant, volantChauffant,
-    demarrageSansCle, coffreElectrique, storesPareSoleil, seats
+    prix, climatisation, siegesChauffants, reglageSieges, toitOuvrant,
+    volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seats
   } = req.body;
 
-  if (!marque || !modele || !prix) {
-    return res.status(400).json({ message: 'Champs obligatoires manquants' });
-  }
+  const prixInt = parseFloat(prix);
+  const seatsInt = parseInt(seats);
 
   try {
-    const [result] = await pool.query(
-      `INSERT INTO annonces (
+    const sql = `
+      INSERT INTO annonces (
         marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
         prix, climatisation, siegesChauffants, reglageSieges, toitOuvrant,
         volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seats
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
-        prix, climatisation, siegesChauffants, reglageSieges, toitOuvrant,
-        volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seats
-      ]
-    );
-    res.json({ message: 'Annonce ajoutée', insertId: result.insertId });
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    await db.query(sql, [
+      marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
+      prixInt, climatisation, siegesChauffants, reglageSieges, toitOuvrant,
+      volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seatsInt
+    ]);
+
+    res.status(200).json({ message: 'Annonce enregistrée' });
   } catch (err) {
-    console.error(err);
+    console.error('Erreur SQL :', err.sqlMessage || err.message);
     res.status(500).json({ message: 'Erreur serveur' });
   }
 });
+
+
 
 
 // ✅ GET /annonces/images
