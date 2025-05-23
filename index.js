@@ -147,17 +147,26 @@ app.post("/annoncestext", async (req, res) => {
 
   const {
     marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
-    prix, climatisation, siegesChauffants, reglageSieges, toitOuvrant,
-    volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seats
+    prix, seats, equipements = {}
   } = req.body;
 
-  const prixInt = parseFloat(prix);
-  const seatsInt = parseInt(seats);
+  const prixDecimal = prix ? parseFloat(prix) : null;
+
+  // Assurez-vous que chaque champ est soit une valeur soit null
+  const {
+    climatisation = null,
+    siegesChauffants = null,
+    reglageSieges = null,
+    toitOuvrant = null,
+    volantChauffant = null,
+    demarrageSansCle = null,
+    coffreElectrique = null,
+    storesPareSoleil = null
+  } = equipements;
 
   try {
     const conn = await getConnection();
 
-    // ✅ Insertion dans annonces (texte uniquement)
     const [result] = await conn.execute(`
       INSERT INTO annonces (
         marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
@@ -165,19 +174,33 @@ app.post("/annoncestext", async (req, res) => {
         volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seats
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
-      marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
-      prixInt, climatisation, siegesChauffants, reglageSieges, toitOuvrant,
-      volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seatsInt
+      marque || null,
+      modele || null,
+      moteur || null,
+      transmission || null,
+      freins || null,
+      suspension || null,
+      essaiRoutier || null,
+      prixDecimal,
+      climatisation,
+      siegesChauffants,
+      reglageSieges,
+      toitOuvrant,
+      volantChauffant,
+      demarrageSansCle,
+      coffreElectrique,
+      storesPareSoleil,
+      seats || null
     ]);
 
     await conn.end();
     res.status(200).json({ message: "✅ Annonce texte enregistrée", id: result.insertId });
-
   } catch (err) {
     console.error("❌ Erreur SQL :", err.sqlMessage || err.message);
     res.status(500).json({ message: "Erreur serveur", erreur: err.sqlMessage || err.message });
   }
 });
+
 
 
 // ✅ GET /annonces/images
