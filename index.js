@@ -92,6 +92,7 @@ app.post("/annonces", upload.array("photos", 10), async (req, res) => {
 });
 
 // ✅ POST /annoncestext (insertion sans photo)
+/*
 app.post("/annoncestext", upload.array("photos", 10), async (req, res) => {
   console.log("📩 Données reçues :", req.body);
 
@@ -139,7 +140,45 @@ app.post("/annoncestext", upload.array("photos", 10), async (req, res) => {
     console.error("❌ Erreur SQL :", err.sqlMessage || err.message);
     res.status(500).json({ message: "Erreur serveur", erreur: err.sqlMessage || err.message });
   }
+});*/
+// ✅ POST /annoncestext (insertion sans photo)
+app.post("/annoncestext", async (req, res) => {
+  console.log("📩 Données reçues :", req.body);
+
+  const {
+    marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
+    prix, climatisation, siegesChauffants, reglageSieges, toitOuvrant,
+    volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seats
+  } = req.body;
+
+  const prixInt = parseFloat(prix);
+  const seatsInt = parseInt(seats);
+
+  try {
+    const conn = await getConnection();
+
+    // ✅ Insertion dans annonces (texte uniquement)
+    const [result] = await conn.execute(`
+      INSERT INTO annonces (
+        marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
+        prix, climatisation, siegesChauffants, reglageSieges, toitOuvrant,
+        volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seats
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
+      prixInt, climatisation, siegesChauffants, reglageSieges, toitOuvrant,
+      volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seatsInt
+    ]);
+
+    await conn.end();
+    res.status(200).json({ message: "✅ Annonce texte enregistrée", id: result.insertId });
+
+  } catch (err) {
+    console.error("❌ Erreur SQL :", err.sqlMessage || err.message);
+    res.status(500).json({ message: "Erreur serveur", erreur: err.sqlMessage || err.message });
+  }
 });
+
 
 // ✅ GET /annonces/images
 app.get("/annonces/images", async (req, res) => {
