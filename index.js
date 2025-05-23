@@ -201,6 +201,35 @@ app.post("/annoncestext", async (req, res) => {
   }
 });
 
+app.post("/annoncestextimg", upload.array("photos", 10), async (req, res) => {
+  try {
+    const { annonce_id } = req.body;
+    if (!annonce_id) {
+      return res.status(400).json({ message: "Le champ 'annonce_id' est requis." });
+    }
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "Au moins une image est requise." });
+    }
+
+    const conn = await getConnection();
+
+    // Insertion des photos
+    for (const file of req.files) {
+      await conn.execute(
+        "INSERT INTO photos_annonces (annonce_id, photo) VALUES (?, ?)",
+        [annonce_id, file.filename]
+      );
+    }
+
+    await conn.end();
+    res.status(201).json({ message: "Images ajoutées avec succès." });
+  } catch (err) {
+    console.error("❌ Erreur POST /annoncestextimg :", err.stack);
+    res.status(500).json({ error: "Erreur serveur", details: err.message });
+  }
+});
+
+
 
 
 // ✅ GET /annonces/images
