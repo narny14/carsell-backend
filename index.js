@@ -229,7 +229,18 @@ app.post("/annoncestextimg", upload.array("photos", 10), async (req, res) => {
   }
 });
 
+app.get('/uploads-list', (req, res) => {
+  const uploadsPath = path.join(__dirname, 'uploads');
+  fs.readdir(uploadsPath, (err, files) => {
+    if (err) {
+      return res.status(500).json({ error: 'Impossible de lire le dossier uploads', details: err.message });
+    }
 
+    // Retourne des URLs complètes
+    const fileUrls = files.map(file => `https://carsell-backend.onrender.com/uploads/${file}`);
+    res.json({ fichiers: fileUrls });
+  });
+});
 
 
 // ✅ GET /annonces/images
