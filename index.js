@@ -216,7 +216,7 @@ app.post("/annoncestextimg", upload.array("photos", 10), async (req, res) => {
     // Insertion des photos
     for (const file of req.files) {
       await conn.execute(
-        "INSERT INTO photos_annonces (annonce_id, photo) VALUES (?, ?)",
+        "INSERT INTO photos_annonces (annonce_id, photo_url) VALUES (?, ?)",
         [annonce_id, file.filename]
       );
     }
