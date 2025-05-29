@@ -19,10 +19,10 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // ✅ Connexion à MySQL Railway
 async function getConnection() {
   return await mysql.createConnection({
-    host: process.env.DB_HOST || 'yamabiko.proxy.rlwy.net',
-    port: process.env.DB_PORT || 42386,
+    host: process.env.DB_HOST || 'yamanote.proxy.rlwy.net',
+    port: process.env.DB_PORT || 15633,
     user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || 'MHVNjPTYIvqMMdkkGhBKTIddOBZsyPfI',
+    password: process.env.DB_PASSWORD || 'tcyEAbboDFENwfQmHGbJpmjpAIkaLDLV',
     database: process.env.DB_NAME || 'railway',
   });
 }
@@ -53,6 +53,33 @@ const upload = multer({
   fileFilter,
   limits: { files: 10 },
 });
+
+// ✅ POST /utilisateurs - Enregistrer un utilisateur Firebase dans la base MySQL
+app.post("/utilisateurs", async (req, res) => {
+  const { uid, email } = req.body;
+
+  if (!uid || !email) {
+    return res.status(400).json({ message: "ID et email requis." });
+  }
+
+  try {
+    const conn = await getConnection();
+
+    // Vérifier si l'utilisateur existe déjà
+    const [existingUser] = await conn.execute("SELECT * FROM users WHERE id = ?", [uid]);
+    if (existingUser.length > 0) {
+      return res.status(200).json({ message: "Utilisateur déjà enregistré." });
+    }
+
+    // Insérer dans la base de données
+    await conn.execute("INSERT INTO users (id, email) VALUES (?, ?)", [uid, email]);
+    res.status(201).json({ message: "Utilisateur enregistré avec succès." });
+  } catch (error) {
+    console.error("Erreur MySQL :", error);
+    res.status(500).json({ message: "Erreur serveur." });
+  }
+});
+
 
 // ✅ POST /annonces (avec photos)
 app.post("/annonces", upload.array("photos", 10), async (req, res) => {
