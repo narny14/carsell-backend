@@ -26,6 +26,8 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+  enableKeepAlive: true, // 👈 ajoute cette ligne
+  keepAliveInitialDelay: 10000 // 👈 et celle-ci (10s)
 });
 
 // 🔧 Multer (upload images)
