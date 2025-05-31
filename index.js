@@ -217,6 +217,29 @@ app.get("/annonces/images", async (req, res) => {
   }
 });
 
+// ✅ Route de test de connexion à la base de données
+app.get("/testdb", async (req, res) => {
+  try {
+    const conn = await getConnection();
+    const [rows] = await conn.query("SELECT NOW() AS maintenant");
+    await conn.end();
+
+    res.json({
+      success: true,
+      message: "Connexion réussie à la base de données ✅",
+      heure: rows[0].maintenant,
+    });
+  } catch (err) {
+    console.error("❌ Erreur de connexion à la BDD :", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Erreur de connexion à la base de données ❌",
+      erreur: err.message,
+    });
+  }
+});
+
+
 // ✅ Lancer le serveur
 app.listen(port, () => {
   console.log(`🚀 Serveur backend Carsell lancé sur http://localhost:${port}`);
