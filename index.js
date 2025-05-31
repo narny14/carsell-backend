@@ -16,16 +16,17 @@ app.use(express.urlencoded({ extended: true }));
 // 📁 Servir les fichiers statiques
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// ✅ Connexion MySQL Railway
-async function getConnection() {
-  return await mysql.createConnection({
-    host: process.env.DB_HOST || 'yamanote.proxy.rlwy.net',
-    port: process.env.DB_PORT || 15633,
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || 'tcyEAbboDFENwfQmHGbJpmjpAIkaLDLV',
-    database: process.env.DB_NAME || 'railway',
-  });
-}
+// ✅ Pool MySQL (meilleure gestion des connexions)
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || 'yamanote.proxy.rlwy.net',
+  port: process.env.DB_PORT || 15633,
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || 'tcyEAbboDFENwfQmHGbJpmjpAIkaLDLV',
+  database: process.env.DB_NAME || 'railway',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
 
 // 🔧 Multer (upload images)
 const storage = multer.diskStorage({
@@ -57,13 +58,11 @@ const upload = multer({
 // ✅ POST /utilisateurs
 app.post("/utilisateurs", async (req, res) => {
   const { uid, email } = req.body;
+  if (!uid || !email) return res.status(400).json({ message: "ID et email requis." });
 
-  if (!uid || !email) {
-    return res.status(400).json({ message: "ID et email requis." });
-  }
-
+  let conn;
   try {
-    const conn = await getConnection();
+    conn = await pool.getConnection();
     const [existingUser] = await conn.execute("SELECT * FROM users WHERE uid = ?", [uid]);
 
     if (existingUser.length > 0) {
@@ -75,18 +74,19 @@ app.post("/utilisateurs", async (req, res) => {
   } catch (error) {
     console.error("Erreur MySQL :", error);
     res.status(500).json({ message: "Erreur serveur." });
+  } finally {
+    if (conn) conn.release();
   }
 });
 
 // ✅ POST /annonces (avec images)
 app.post("/annonces", upload.array("photos", 10), async (req, res) => {
-  try {
-    const { marque } = req.body;
-    if (!marque) {
-      return res.status(400).json({ message: "Le champ 'marque' est requis." });
-    }
+  const { marque } = req.body;
+  if (!marque) return res.status(400).json({ message: "Le champ 'marque' est requis." });
 
-    const conn = await getConnection();
+  let conn;
+  try {
+    conn = await pool.getConnection();
     const [result] = await conn.execute("INSERT INTO annonces (marque) VALUES (?)", [marque]);
     const annonceId = result.insertId;
 
@@ -99,18 +99,17 @@ app.post("/annonces", upload.array("photos", 10), async (req, res) => {
       }
     }
 
-    await conn.end();
     res.status(201).json({ message: "Annonce enregistrée avec succès", id: annonceId });
   } catch (err) {
     console.error("❌ Erreur POST /annonces :", err.stack);
     res.status(500).json({ error: "Erreur lors de l'enregistrement", details: err.message });
+  } finally {
+    if (conn) conn.release();
   }
 });
 
-// ✅ POST /annoncestext (données sans images)
+// ✅ POST /annoncestext
 app.post("/annoncestext", async (req, res) => {
-  console.log("📩 Données reçues :", req.body);
-
   const {
     marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
     prix, seats, equipements = {}
@@ -129,9 +128,9 @@ app.post("/annoncestext", async (req, res) => {
     storesPareSoleil = null
   } = equipements;
 
+  let conn;
   try {
-    const conn = await getConnection();
-
+    conn = await pool.getConnection();
     const [result] = await conn.execute(`
       INSERT INTO annonces (
         marque, modele, moteur, transmission, freins, suspension, essaiRoutier,
@@ -145,27 +144,26 @@ app.post("/annoncestext", async (req, res) => {
       volantChauffant, demarrageSansCle, coffreElectrique, storesPareSoleil, seats || null
     ]);
 
-    await conn.end();
     res.status(200).json({ message: "✅ Annonce texte enregistrée", id: result.insertId });
   } catch (err) {
     console.error("❌ Erreur SQL :", err.sqlMessage || err.message);
     res.status(500).json({ message: "Erreur serveur", erreur: err.sqlMessage || err.message });
+  } finally {
+    if (conn) conn.release();
   }
 });
 
-// ✅ POST /annoncestextimg (ajouter images à une annonce existante)
+// ✅ POST /annoncestextimg
 app.post("/annoncestextimg", upload.array("photos", 10), async (req, res) => {
+  const { annonce_id } = req.body;
+  if (!annonce_id) return res.status(400).json({ message: "Le champ 'annonce_id' est requis." });
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ message: "Au moins une image est requise." });
+  }
+
+  let conn;
   try {
-    const { annonce_id } = req.body;
-    if (!annonce_id) {
-      return res.status(400).json({ message: "Le champ 'annonce_id' est requis." });
-    }
-
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ message: "Au moins une image est requise." });
-    }
-
-    const conn = await getConnection();
+    conn = await pool.getConnection();
 
     for (const file of req.files) {
       await conn.execute(
@@ -174,11 +172,12 @@ app.post("/annoncestextimg", upload.array("photos", 10), async (req, res) => {
       );
     }
 
-    await conn.end();
     res.status(201).json({ message: "Images ajoutées avec succès." });
   } catch (err) {
     console.error("❌ Erreur POST /annoncestextimg :", err.stack);
     res.status(500).json({ error: "Erreur serveur", details: err.message });
+  } finally {
+    if (conn) conn.release();
   }
 });
 
@@ -195,10 +194,11 @@ app.get("/uploads-list", (req, res) => {
   });
 });
 
-// ✅ GET /annonces/images (avec photos associées)
+// ✅ GET /annonces/images
 app.get("/annonces/images", async (req, res) => {
+  let conn;
   try {
-    const conn = await getConnection();
+    conn = await pool.getConnection();
     const [annonces] = await conn.query("SELECT * FROM annonces");
 
     for (let annonce of annonces) {
@@ -209,21 +209,21 @@ app.get("/annonces/images", async (req, res) => {
       annonce.photos = photos.map(p => `https://carsell-backend.onrender.com/uploads/${p.photo_url}`);
     }
 
-    await conn.end();
     res.status(200).json({ annonces });
   } catch (err) {
     console.error("❌ Erreur GET /annonces/images :", err.stack);
     res.status(500).json({ error: "Erreur serveur", details: err.message });
+  } finally {
+    if (conn) conn.release();
   }
 });
 
-// ✅ Route de test de connexion à la base de données
+// ✅ Test DB
 app.get("/testdb", async (req, res) => {
+  let conn;
   try {
-    const conn = await getConnection();
+    conn = await pool.getConnection();
     const [rows] = await conn.query("SELECT NOW() AS maintenant");
-    await conn.end();
-
     res.json({
       success: true,
       message: "Connexion réussie à la base de données ✅",
@@ -236,11 +236,12 @@ app.get("/testdb", async (req, res) => {
       message: "Erreur de connexion à la base de données ❌",
       erreur: err.message,
     });
+  } finally {
+    if (conn) conn.release();
   }
 });
 
-
-// ✅ Lancer le serveur
+// ✅ Start server
 app.listen(port, () => {
-  console.log(`🚀 Serveur backend Carsell lancé sur http://localhost:${port}`);
+  console.log(`🚀 Serveur Carsell lancé sur http://localhost:${port}`);
 });
